@@ -5,7 +5,6 @@ android {
     buildToolsVersion "24.0.1"
 
     defaultConfig {
-        applicationId "com.udacity.gradle.builditbigger"
         minSdkVersion 15
         targetSdkVersion 24
         versionCode 1
@@ -17,6 +16,18 @@ android {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+
+        productFlavors {
+            paid {
+                applicationId "com.udacity.gradle.builditbigger.paid"
+                versionName "1.0-paid"
+            }
+
+            free {
+                applicationId "com.udacity.gradle.builditbigger.free"
+                versionName "1.0-free"
+            }
         }
     }
 
@@ -30,7 +41,8 @@ android {
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
     // Added for AdMob
-    compile 'com.google.android.gms:play-services-ads:9.6.1'
+    freeCompile 'com.google.android.gms:play-services-ads:9.6.1'
+
     compile project(":joker")
     compile project(":joketeller")
     compile 'com.android.support:appcompat-v7:24.2.1'
