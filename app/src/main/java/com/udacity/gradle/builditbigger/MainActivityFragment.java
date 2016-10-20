@@ -1,16 +1,18 @@
 package com.udacity.gradle.builditbigger;
 
+import android.content.Intent;
 import android.databinding.DataBindingUtil;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
+import com.akshaykant.com.joketeller.JokeTellerActivity;
 import com.akshaykant.joke.Joke;
 import com.google.android.gms.ads.AdRequest;
 import com.udacity.gradle.builditbigger.databinding.FragmentMainBinding;
+
 
 
 /**
@@ -48,7 +50,13 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
         Joke tellJoke = new Joke();
 
         if (view.getId() == R.id.tell_joke_button) {
-            Toast.makeText(getActivity(), tellJoke.getJoke(), Toast.LENGTH_LONG).show();
+
+            Intent intentJoke = new Intent(getActivity(), JokeTellerActivity.class);
+
+            intentJoke.putExtra("joke", tellJoke.getJoke());
+
+            //start activity
+            startActivity(intentJoke);
         }
     }
 }
