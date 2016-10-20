@@ -7,12 +7,11 @@ import android.support.v4.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import com.akshaykant.com.joketeller.JokeTellerActivity;
-import com.akshaykant.joke.Joke;
 import com.google.android.gms.ads.AdRequest;
 import com.udacity.gradle.builditbigger.databinding.FragmentMainBinding;
-
 
 
 /**
@@ -22,14 +21,23 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
 
     FragmentMainBinding binding;
 
-    public MainActivityFragment() {
-    }
-
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_main, container, false);
         View root = binding.getRoot();
+
+        showAdd();
+
+        binding.jokeLoadingSpinner.setVisibility(View.INVISIBLE);
+        binding.tellJokeButton.setEnabled(true);
+
+        binding.tellJokeButton.setOnClickListener(this);
+
+        return root;
+    }
+
+    private void showAdd() {
 
         // Create an ad request. Check logcat output for the hashed device ID to
         // get test ads on a physical device. e.g.
@@ -38,25 +46,38 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
                 .addTestDevice(AdRequest.DEVICE_ID_EMULATOR)
                 .build();
         binding.adView.loadAd(adRequest);
-
-        //Toast the Joke on click
-        binding.tellJokeButton.setOnClickListener(this);
-        return root;
     }
 
     @Override
     public void onClick(View view) {
 
-        Joke tellJoke = new Joke();
 
         if (view.getId() == R.id.tell_joke_button) {
 
-            Intent intentJoke = new Intent(getActivity(), JokeTellerActivity.class);
+            binding.jokeLoadingSpinner.setVisibility(View.VISIBLE);
+            binding.tellJokeButton.setEnabled(false);
 
-            intentJoke.putExtra("joke", tellJoke.getJoke());
+            new EndpointsAsyncTask(new EndpointsAsyncTask.ResponseInterface() {
 
-            //start activity
-            startActivity(intentJoke);
+                @Override
+                public void onResponse(boolean isSuccess, String result) {
+
+                    binding.jokeLoadingSpinner.setVisibility(View.INVISIBLE);
+                    binding.tellJokeButton.setEnabled(true);
+
+                    if (isSuccess) {
+                        Intent intentJoke = new Intent(getActivity(), JokeTellerActivity.class);
+                        intentJoke.putExtra("joke", result);
+
+                        startActivity(intentJoke);
+                    } else {
+
+                        Toast.makeText(getActivity(), "Error: " + result, Toast.LENGTH_LONG).show();
+                    }
+
+                }
+            }).execute();
+
         }
     }
 }
