@@ -10,7 +10,9 @@ import android.view.ViewGroup;
 import android.widget.Toast;
 
 import com.akshaykant.com.joketeller.JokeTellerActivity;
+import com.google.android.gms.ads.AdListener;
 import com.google.android.gms.ads.AdRequest;
+import com.google.android.gms.ads.InterstitialAd;
 import com.udacity.gradle.builditbigger.databinding.FragmentMainBinding;
 
 
@@ -21,31 +23,64 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
 
     FragmentMainBinding binding;
 
+    InterstitialAd mInterstitialAd;
+
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         binding = DataBindingUtil.inflate(inflater, R.layout.fragment_main, container, false);
         View root = binding.getRoot();
 
-        showAdd();
-
         binding.jokeLoadingSpinner.setVisibility(View.INVISIBLE);
         binding.tellJokeButton.setEnabled(true);
+
+        interstitialAddPreFetch();
+
+        //Kick off the fetch
+        requestNewInterstitial();
 
         binding.tellJokeButton.setOnClickListener(this);
 
         return root;
     }
 
-    private void showAdd() {
+    private void interstitialAddPreFetch() {
 
-        // Create an ad request. Check logcat output for the hashed device ID to
-        // get test ads on a physical device. e.g.
-        // "Use AdRequest.Builder.addTestDevice("ABCDEF012345") to get test ads on this device."
-        AdRequest adRequest = new AdRequest.Builder()
-                .addTestDevice(AdRequest.DEVICE_ID_EMULATOR)
-                .build();
-        binding.adView.loadAd(adRequest);
+        //Set up for pre-fetching interstitial ad request
+        mInterstitialAd = new InterstitialAd(getContext());
+
+        mInterstitialAd.setAdUnitId(getString(R.string.interstitial_test_ad_id));
+
+        mInterstitialAd.setAdListener(new AdListener() {
+            @Override
+            public void onAdClosed() {
+                super.onAdClosed();
+
+                //process the joke Request
+                binding.jokeLoadingSpinner.setVisibility(View.VISIBLE);
+                fetchJoke();
+
+                //pre-fetch the next ad
+                requestNewInterstitial();
+            }
+
+            @Override
+            public void onAdFailedToLoad(int errorCode) {
+                super.onAdFailedToLoad(errorCode);
+
+                //pre-fetch the next ad
+                requestNewInterstitial();
+
+            }
+
+            @Override
+            public void onAdLoaded() {
+                super.onAdLoaded();
+            }
+        });
+
+        //Kick off the fetch
+        requestNewInterstitial();
     }
 
     @Override
@@ -54,30 +89,48 @@ public class MainActivityFragment extends Fragment implements View.OnClickListen
 
         if (view.getId() == R.id.tell_joke_button) {
 
-            binding.jokeLoadingSpinner.setVisibility(View.VISIBLE);
-            binding.tellJokeButton.setEnabled(false);
-
-            new EndpointsAsyncTask(new EndpointsAsyncTask.ResponseInterface() {
-
-                @Override
-                public void onResponse(boolean isSuccess, String result) {
-
-                    binding.jokeLoadingSpinner.setVisibility(View.INVISIBLE);
-                    binding.tellJokeButton.setEnabled(true);
-
-                    if (isSuccess) {
-                        Intent intentJoke = new Intent(getActivity(), JokeTellerActivity.class);
-                        intentJoke.putExtra("joke", result);
-
-                        startActivity(intentJoke);
-                    } else {
-
-                        Toast.makeText(getActivity(), "Error: " + result, Toast.LENGTH_LONG).show();
-                    }
-
-                }
-            }).execute();
-
+            //show the interstitial if it's ready
+            if (mInterstitialAd.isLoaded()) {
+                mInterstitialAd.show();
+            } else {
+                binding.jokeLoadingSpinner.setVisibility(View.VISIBLE);
+                fetchJoke();
+            }
         }
+    }
+
+    private void fetchJoke() {
+
+        binding.jokeLoadingSpinner.setVisibility(View.VISIBLE);
+        binding.tellJokeButton.setEnabled(false);
+
+        new EndpointsAsyncTask(new EndpointsAsyncTask.ResponseInterface() {
+
+            @Override
+            public void onResponse(boolean isSuccess, String result) {
+
+                binding.jokeLoadingSpinner.setVisibility(View.INVISIBLE);
+                binding.tellJokeButton.setEnabled(true);
+
+                if (isSuccess) {
+                    Intent intentJoke = new Intent(getActivity(), JokeTellerActivity.class);
+                    intentJoke.putExtra("joke", result);
+
+                    startActivity(intentJoke);
+                } else {
+
+                    Toast.makeText(getActivity(), "Error: " + result, Toast.LENGTH_LONG).show();
+                }
+
+            }
+        }).execute();
+    }
+
+
+    private void requestNewInterstitial() {
+        AdRequest adRequest = new AdRequest.Builder()
+                .addTestDevice(AdRequest.DEVICE_ID_EMULATOR)
+                .build();
+        mInterstitialAd.loadAd(adRequest);
     }
 }
